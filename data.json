@@ -1,0 +1,4 @@
+{
+    "task_name": "tarea1 sw prueba",
+    "cron_expression":"cron 0 0 * * *"
+}
