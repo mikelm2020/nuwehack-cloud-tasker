@@ -64,8 +64,10 @@ resource "aws_api_gateway_integration" "create_task_integration" {
   resource_id             = aws_api_gateway_resource.create_task_resource.id
   http_method             = aws_api_gateway_method.create_task_method.http_method
   integration_http_method = "POST"
-  
+  passthrough_behavior = "WHEN_NO_TEMPLATES"
+  content_handling = "CONVERT_TO_TEXT"
   uri                     = aws_lambda_function.create_scheduled_task.invoke_arn
+  
 }
 
 resource "aws_lambda_permission" "apigw_lambda_permission" {
@@ -428,17 +430,28 @@ resource "aws_iam_role_policy" "lambda_basic_policy" {
 	  policy = jsonencode({
 	  Version: "2012-10-17",
 	  Statement: [
+      {
+			  Effect: "Allow",
+			  Action: "logs:CreateLogGroup",
+			  Resource: "arn:aws:logs:us-east-1:000000000000:*"
+		  },
 	    {
 	      Effect: "Allow",
 	      Action: [
-	        "logs:CreateLogGroup",
 	        "logs:CreateLogStream",
 	        "logs:PutLogEvents"
 	      ],
 	      Resource: [
-	        "arn:aws:logs:*:*:*"
+	        "arn:aws:logs:us-east-1:000000000000:log-group:/aws/lambda/create_scheduled_task:*"
 	      ]
-	    }
+	    },
+      {
+        Effect: "Allow",
+        Action: [
+          "dynamodb:PutItem"
+        ],
+        Resource: "arn:aws:dynamodb:us-east-1:000000000000:table/tasks"
+      }
 	  ]
 	})
 }    
