@@ -103,7 +103,7 @@ resource "aws_api_gateway_integration_response" "create_task_integration_respons
   }
 
   response_templates = {
-    "text/html" : "$input.path('$')"
+    "json/application" : "$input.json('$')"
   }
 
   depends_on = [aws_api_gateway_integration.create_task_integration]
