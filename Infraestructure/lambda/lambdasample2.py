@@ -1,21 +1,30 @@
 import json
+
 import boto3
-import os
-
-TABLE_NAME = os.environ.get("DYNAMODB_TABLE_NAME")
-
-dynamodb = boto3.resource("dynamodb")
-
-table = dynamodb.Table(TABLE_NAME)
 
 
 def lambda_handler(event, context):
-    listScheduledTask()
+    TABLE_NAME = "tasks"
 
+    dynamodb = boto3.resource("dynamodb")
 
-def listScheduledTask(item):
+    table = dynamodb.Table(TABLE_NAME)
 
-    response = table.scan()
-    tasks = response["Items"]
+    try:
+        scanned = table.scan()
+        tasks = scanned["Items"]
 
-    return {"statusCode": 200, "body": json.dumps(tasks)}
+        response = {
+            "statusCode": 200,
+            "body": json.dumps(tasks),
+        }
+
+        return response
+    except Exception as e:
+        response = {
+            "statusCode": 500,
+            "body": json.dumps(
+                {"error": f"Ha ocurrido un error al listar las tareas: {str(e)}"}
+            ),
+        }
+        return response

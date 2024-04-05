@@ -118,16 +118,6 @@ resource "aws_s3_bucket" "lambda_layer_bucket" {
   }
 }
 
-# # Generar un entorno virtual e instalar las dependencias
-# resource "null_resource" "generate_lambda_layer" {
-#   triggers = {
-#     always_run = timestamp()
-#   }
-
-#   provisioner "local-exec" {
-#     command = "${path.module}/../../lambda/sh layer.sh"
-#   }
-# }
 
 # Empaquetar la capa Lambda
 data "archive_file" "lambda_layer_file" {
@@ -257,7 +247,7 @@ resource "aws_api_gateway_integration_response" "list_task_integration_response"
   }
 
   response_templates = {
-    "text/html" : "$input.path('$')"
+    "json/application" : "$input.json('$')"
   }
 
   depends_on = [aws_api_gateway_integration.list_task_integration]
@@ -292,6 +282,7 @@ resource "aws_lambda_function" "list_scheduled_task" {
   role          = aws_iam_role.lambda_exec.arn
   handler       = "lambdasample2.lambda_handler"
   runtime       = "python3.10"
+  layers        = [aws_lambda_layer_version.lambda_layer.arn]
   # s3_bucket     = aws_s3_bucket.lambda_list_scheduled_task_bucket.id
   # s3_key        = aws_s3_object.lambda_list_scheduled_task_code.key
   source_code_hash = data.archive_file.lambda_list_scheduled_task_file.output_base64sha256
