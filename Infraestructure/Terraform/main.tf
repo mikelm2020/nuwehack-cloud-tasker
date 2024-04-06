@@ -182,8 +182,6 @@ resource "aws_lambda_function" "create_scheduled_task" {
   handler       = "lambdasample.lambda_handler"
   runtime       = "python3.10"
   layers        = [aws_lambda_layer_version.lambda_layer.arn]
-  # s3_bucket     = aws_s3_bucket.lambda_layer_bucket.id
-  # s3_key        = aws_s3_object.lambda_layer_object.key
   source_code_hash = data.archive_file.lambda_create_scheduled_task_file.output_base64sha256
   memory_size   = 512
   timeout       = 60
@@ -283,8 +281,6 @@ resource "aws_lambda_function" "list_scheduled_task" {
   handler       = "lambdasample2.lambda_handler"
   runtime       = "python3.10"
   layers        = [aws_lambda_layer_version.lambda_layer.arn]
-  # s3_bucket     = aws_s3_bucket.lambda_list_scheduled_task_bucket.id
-  # s3_key        = aws_s3_object.lambda_list_scheduled_task_code.key
   source_code_hash = data.archive_file.lambda_list_scheduled_task_file.output_base64sha256
   memory_size   = 512
   timeout       = 60
@@ -350,44 +346,6 @@ resource "aws_api_gateway_deployment" "deployment" {
   ]
 }
 
-# resource "aws_api_gateway_method_settings" "create_task_settings" {
-#   rest_api_id = aws_api_gateway_rest_api.task_api.id
-#   stage_name  = "dev"
-#   method_path = join("", ["", aws_api_gateway_resource.create_task_resource.path_part, "/", aws_api_gateway_method.create_task_method.http_method])
-  
-#   settings {
-#     logging_level = "INFO"
-#   }
-# }
-
-# resource "aws_api_gateway_method_settings" "list_task_settings" {
-#   rest_api_id = aws_api_gateway_rest_api.task_api.id
-#   stage_name  = "dev"
-#   method_path = join("", ["", aws_api_gateway_resource.list_task_resource.path_part, "/", aws_api_gateway_method.list_task_method.http_method])
-  
-#   settings {
-#     logging_level = "INFO"
-#   }
-# }
-
-# resource "aws_iam_role" "lambda_exec" {
-#   name = "lambda_exec_role"
-
-#   assume_role_policy = <<EOF
-# {
-#   "Version": "2012-10-17",
-#   "Statement": [
-#     {
-#       "Effect": "Allow",
-#       "Principal": {
-#         "Service": "lambda.amazonaws.com"
-#       },
-#       "Action": "sts:AssumeRole"
-#     }
-#   ]
-# }
-# EOF
-# }
 
 resource "aws_iam_role" "lambda_exec" {
   name = "lambda_exec_role"
@@ -447,31 +405,42 @@ resource "aws_iam_role_policy" "lambda_basic_policy" {
 	})
 }    
 
-# resource "aws_s3_bucket" "taskstorage" {
-#   bucket = "taskstorage"
-# }
+data "archive_file" "lambda_execute_scheduled_task_file"{
+  type = "zip"
 
-# resource "aws_lambda_function" "execute_scheduled_task" {
-#   filename      = "../lambda/execute_scheduled_task.zip"
-#   function_name = "executeScheduledTask"
-#   role          = aws_iam_role.lambda_exec.arn
-#   handler       = "lambdasample3.lambda_handler"
-#   runtime       = "python3.10"
+  source_file = "${path.module}/../lambda/lambdasample3.py"
+  output_path = "${path.module}/../lambda/execute_scheduled_task.zip "
+}
 
-#   environment {
-#     variables = {
-#       S3_BUCKET_NAME = aws_s3_bucket.taskstorage.bucket
-#     }
-#   }
-# }
+resource "aws_lambda_function" "execute_scheduled_task" {
+  filename = data.archive_file.lambda_execute_scheduled_task_file.output_path
+  function_name = "executeScheduledTask"
+  role          = aws_iam_role.lambda_exec.arn
+  handler       = "lambdasample3.lambda_handler"
+  runtime       = "python3.10"
+  layers        = [aws_lambda_layer_version.lambda_layer.arn]
+  source_code_hash = data.archive_file.lambda_execute_scheduled_task_file.output_base64sha256
+  memory_size   = 512
+  timeout       = 60
 
-# resource "aws_cloudwatch_event_rule" "every_minute" {
-#   name                = "every_minute"
-#   schedule_expression = "rate(1 minute)"
-# }
+  environment {
+    variables = {
+      S3_BUCKET_NAME = aws_s3_bucket.taskstorage.bucket
+    }
+  }
+}
 
-# resource "aws_cloudwatch_event_target" "lambda_target" {
-#   rule      = aws_cloudwatch_event_rule.every_minute.name
-#   target_id = "execute_scheduled_task"
-#   arn       = aws_lambda_function.execute_scheduled_task.arn
-# }
+resource "aws_cloudwatch_event_rule" "every_minute" {
+  name                = "every_minute"
+  schedule_expression = "rate(1 minute)"
+}
+
+resource "aws_cloudwatch_event_target" "lambda_target" {
+  rule      = aws_cloudwatch_event_rule.every_minute.name
+  target_id = aws_lambda_function.execute_scheduled_task.id
+  arn       = aws_lambda_function.execute_scheduled_task.arn
+}
+
+resource "aws_s3_bucket" "taskstorage" {
+  bucket = "taskstorage" 
+}

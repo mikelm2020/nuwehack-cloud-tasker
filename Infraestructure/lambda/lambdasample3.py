@@ -1,19 +1,53 @@
-import boto3
-import os
-import uuid
+import json
 
-s3 = boto3.client("s3")
+import boto3
 
 
 def lambda_handler(event, context):
-    executeScheduledTask()
+    bucket_name = "taskstorage"
+    print("Evento recibido:", json.dumps(event))
 
+    event_type = event.get("detail-type")
 
-def executeScheduledTask(item):
-    s3_bucket_name = os.environ["S3_BUCKET_NAME"]
+    if event_type is not None:
+        # EventBridge Invocation
+        task = event.get("detail")
 
-    # se crea un archivo vacío con un nombre generado aleatoriamente
-    filename = str(uuid.uuid4()) + ".txt"
-    s3.put_object(Bucket=s3_bucket_name, Key=filename)
+        if event_type == "TaskDescribed":
+            customer_id = task.get("customerId")
+            if customer_id:
+                pass
 
-    return {"statusCode": 200, "body": "Object created in S3 bucket"}
+    # Contenido del ítem que deseas crear (aquí puedes personalizar según tus necesidades)
+    item_content = {"key": "valor", "otra_key": "otro_valor"}
+
+    # Convertir el contenido del ítem a formato JSON
+    item_json = json.dumps(item_content)
+
+    # Inicializar el cliente de S3
+    s3 = boto3.client("s3")
+
+    try:
+        # Subir el ítem al bucket S3
+        s3.put_object(Bucket=bucket_name, Key="nombre_del_item.json", Body=item_json)
+
+        # Respuesta exitosa
+        response = {
+            "statusCode": 200,
+            "body": json.dumps(
+                {"message": "Ítem creado satisfactoriamente en el bucket S3."}
+            ),
+        }
+
+        return response
+
+    except Exception as e:
+        # Si ocurre un error, devolver una respuesta de error
+        response = {
+            "statusCode": 500,
+            "body": json.dumps(
+                {"error": f"Error al crear el ítem en el bucket S3: {str(e)}"}
+            ),
+        }
+
+    return response

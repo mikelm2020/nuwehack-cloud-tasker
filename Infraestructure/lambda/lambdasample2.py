@@ -4,6 +4,27 @@ import boto3
 
 
 def lambda_handler(event, context):
+    """
+    Lambda function to handle HTTP requests for listing tasks.
+
+    Parameters
+    ----------
+    event: dict, required
+        API Gateway Lambda Proxy Input Format
+
+
+
+    context: object, required
+        Lambda Context runtime methods and attributes
+
+
+
+    Returns
+    ------
+    API Gateway Lambda Proxy Output Format: dict
+
+
+    """
     TABLE_NAME = "tasks"
 
     dynamodb = boto3.resource("dynamodb")
@@ -24,7 +45,7 @@ def lambda_handler(event, context):
         response = {
             "statusCode": 500,
             "body": json.dumps(
-                {"error": f"Ha ocurrido un error al listar las tareas: {str(e)}"}
+                {"error": f"An error occurred while retrieving tasks: {str(e)}"}
             ),
         }
         return response
